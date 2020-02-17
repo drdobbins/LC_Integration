@@ -1,0 +1,44 @@
+<title>Reusable Form Demo</title>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<ul>
+                    {% for message in messages %}
+ 	<li>{{ message[1] }}</li>
+{% endfor %}</ul>
+{% endif %}
+{% endwith %}
+<form action="" method="post">
+    {{ form.csrf }}
+
+    <div class="input text">
+        {{ form.meet_id.label }} {{ form.meet_id }}
+    </div>
+
+    <div class="input text">
+        {{ form.platform_id.label }} {{ form.platform_id }}
+    </div>
+
+    <div class="input text">
+        {{ form.password.label }} {{ form.password }}
+    </div>
+
+	<div class="input text">
+        {{ form.local_server.label }} {{ form.local_server }}
+    </div>
+
+    <div class="input radio">
+        <ul style="list-style-type: none;">
+            {% for option in form.server_type %}
+                <li>
+                    {{ option }}
+                    {{ option.label }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="input submit">
+        <input type="submit" value="Submit">
+    </div>
+</form>

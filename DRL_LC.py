@@ -8,6 +8,19 @@ import math
 import os
 import json
 import requests
+import threading
+
+#------------------
+from flask import Flask, render_template, flash, request, redirect, url_for
+from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField, RadioField
+# App config.
+DEBUG = False
+app = Flask(__name__)
+app.config.from_object(__name__)
+app.reloader=False
+app.config['SECRET_KEY'] = '7d441f27d441f27567d441f2b6176a'
+#-----------------
+
 
 pygame.init() #initalize pygame
 pygame.font.init() #initialize pygame font
@@ -26,24 +39,97 @@ windo_size = pygame.Surface.get_size(surface) #get the size of the tiny window.
 pygame.mouse.set_visible(0)#remvoes the mouse icon rom the main screen
 surface.fill((0,0,0)) #color the screen black
 
+class ReusableForm(Form):
+	meet_id = TextField('Meet ID:', validators=[validators.required()])
+	platform_id = TextField('Platform ID:', validators=[validators.required()])
+	password = TextField('LiftingCast Password:', validators=[validators.required()])
+	local_server = TextField('Local Server IP Address ')
+	server_type = RadioField("", choices=[
+		("liftingcast", "LiftingCast"),
+		("local", "Local server")],
+		default="liftingcast",
+		validators=[validators.required()])
+
+
+
+
+   
+@app.route("/", methods=['GET', 'POST'])
+def hello():
+	global meet_id, platform_id, password, protocol, meet_url
+	form = ReusableForm(request.form)
+
+	print form.errors
+	if request.method == 'POST':
+		meet_id=str(request.form['meet_id'])
+		platform_id=str(request.form['platform_id'])
+		password=str(request.form['password'])
+		local_server_ip=str(request.form['local_server'])
+		server_type=request.form['server_type']
+		
+		print "meet id: " + meet_id
+		print "platform id: " + platform_id
+		print "password: " + password
+		print "server type: " + server_type
+		
+		
+		#check for server type:
+		if server_type == "local":
+			protocol = "http://"
+			meet_url = str(local_server_ip)
+			print("Data Recieved. Type = "+protocol+"Meet URL: " +meet_url)
+		
+		else:
+			protocol = "https://"
+			meet_url = "liftingcast.com"
+			print("Data Recieved. Type = "+protocol+"Meet URL: " +meet_url)
+		
+
+	if form.validate():
+		# Save the comment here.
+		flash('Hello Scott')
+	else:
+		flash('All the form fields are required.')
+	
+	return render_template('hello.html', form=form)
+
+def webServer():
+	if __name__ == "__main__":
+		app.run(host='0.0.0.0',port=5009)
+
+thread1 = threading.Thread(target = webServer)
+thread1.start()
+
 #define your meet credentials here. 
-meet_id = 'md199gasarz2' #usapl meet
+#meet_id = 'mb3dulr07srv' #usapl meet
+meet_id = '' #usapl meet
 
 #USAPL Platform IDs
-platform_id = 'pugzn7prxroz' #Platform
+#platform_id = 'pqucxk76vm3x' #Platform
+platform_id = '' #Platform
 #define meet password
-password = 'squat900'
+#password = 'squat900'
+password = ''
+
+
 
 #define local server IP. 
-meet_url = "192.168.86.124"
+#meet_url = "192.168.86.124"
+meet_url = "liftingcast.com"
+
+
+protocol = "https://"
+#protocol = "http://"
+
+
 
 #these are the URLs used to make requests to liftingcast
-light_url = "http://"+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/lights"
-set_clock_url = "http://"+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/clock"
-start_clock_url= "http://"+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/start_clock"
-reset_clock_url= "http://"+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/reset_clock"
+light_url = protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/lights"
+set_clock_url = protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/clock"
+start_clock_url= protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/start_clock"
+reset_clock_url= protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/reset_clock"
 password_data={"password":password}
-
+#-------------------------------------
     
 def liftingcast_post(url,data):
 	
@@ -83,6 +169,7 @@ class timer():
 				
 			try:
 				#the clock is already started, pause it.
+				print("URL being hit: "+reset_clock_url)
 				r = requests.post(reset_clock_url,json=password_data)
 				self.started = False #reset. 
 				place_image("network_good.png",2,windo_size[0]/8,windo_size[1]/8)
@@ -94,9 +181,10 @@ class timer():
 				pygame.display.update()
 				time.sleep(1)
 		else:
-                r = requests.post(start_clock_url,json=password_data)
+			#r = requests.post(start_clock_url,json=password_data)
 			#the clock is paused, start it.
 			try:
+				print("URL being hit: "+start_clock_url)
 				r = requests.post(start_clock_url,json=password_data)
 				self.started = True
 				place_image("network_good.png",2,windo_size[0]/8,windo_size[1]/8)
@@ -287,6 +375,13 @@ Timer = timer()
 
 #main loop. 
 while True:
+	light_url = protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/lights"
+	set_clock_url = protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/clock"
+	start_clock_url= protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/start_clock"
+	reset_clock_url= protocol+meet_url+"/api/meets/"+meet_id+"/platforms/"+platform_id+"/reset_clock"
+	password_data={"password":password}
+	
+	
 	surface.fill((0,0,0)) #color the screen black
 	place_image("drl_logo.png", 10,windo_size[0]/2, windo_size[1]/2)
 	place_image("network_normal.png",2,windo_size[0]/8,windo_size[1]/8)
